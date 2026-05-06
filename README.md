@@ -45,11 +45,11 @@ Lo más sencillo es publicar la carpeta `web/` como sitio.
 
 ### Opción B: subcarpeta del repo existente
 
-Si querés mantener todo en `sordo-mudo`:
+Si querés mantener todo en `manos-que-hablan-app`:
 
 1. Settings → Pages → Source: "Deploy from a branch" → Branch: `main` /
    `web` → Save.
-2. URL final: `https://pgreyesm.github.io/sordo-mudo/`
+2. URL final: `https://pgreyesm.github.io/manos-que-hablan-app/`
 
 Esta opción es más rápida pero deja la web en una URL menos limpia y
 mezclada con el código de la app.
