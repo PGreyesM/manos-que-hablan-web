@@ -1,0 +1,15 @@
+# Archivos temporales de LibreOffice / editores
+.~lock.*#
+*.tmp
+*~
+
+# Previews generados localmente (no van al repo publico)
+index.pdf
+preview-*.jpg
+preview-*.png
+
+# Editores
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
