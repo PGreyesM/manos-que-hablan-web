@@ -20,7 +20,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js';
 import {
   initializeAppCheck,
-  ReCaptchaV3Provider,
+  ReCaptchaEnterpriseProvider,
 } from 'https://www.gstatic.com/firebasejs/10.13.0/firebase-app-check.js';
 import {
   getFirestore,
@@ -165,7 +165,10 @@ async function initFirebase() {
   try {
     firebaseApp = initializeApp(FIREBASE_CONFIG);
     initializeAppCheck(firebaseApp, {
-      provider: new ReCaptchaV3Provider(RECAPTCHA_V3_SITE_KEY),
+      // reCAPTCHA Enterprise (no el v3 clasico). Google migra los sites
+      // nuevos a Enterprise automaticamente, asi que usamos el provider
+      // que matchea con el panel donde el site quedo registrado.
+      provider: new ReCaptchaEnterpriseProvider(RECAPTCHA_V3_SITE_KEY),
       isTokenAutoRefreshEnabled: true,
     });
     firestore = getFirestore(firebaseApp);
