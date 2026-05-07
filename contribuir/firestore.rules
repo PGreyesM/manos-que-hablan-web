@@ -1,0 +1,135 @@
+// Reglas Firestore para Manos que Hablan - coleccion 'contributions'
+//
+// Filosofia de seguridad:
+//   - Cliente solo puede CREAR. No puede leer, modificar ni borrar.
+//   - Cada documento esta validado en tipo, formato, tamano y rango.
+//   - App Check es bloqueante: sin token de reCAPTCHA v3 valido, el escribe
+//     falla. Esto bloquea bots automaticos.
+//   - Solo el equipo de validadores (con reglas/colecciones aparte) puede
+//     leer y aprobar/rechazar. Pendiente: implementar coleccion 'validators'
+//     con auth de Firebase para el panel.
+//
+// Como deployar:
+//   1. Login en Firebase: `firebase login`
+//   2. Inicializar local: `firebase init firestore`
+//   3. Reemplazar el firestore.rules generado por este.
+//   4. Deploy: `firebase deploy --only firestore:rules`
+//   O alternativamente: pegar el contenido directo en
+//   Firebase Console -> Firestore Database -> Rules.
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Coleccion publica de aportes pendientes de revision.
+    match /contributions/{contributionId} {
+
+      // PROHIBIDO leer desde cliente. Solo el panel de validadores lo hace
+      // con credenciales especiales (a configurar mas adelante).
+      allow read: if false;
+
+      // PROHIBIDO actualizar / borrar desde cliente. La transicion
+      // pending_review -> approved/rejected la hace el panel admin.
+      allow update, delete: if false;
+
+      // CREAR esta permitido solo si el documento cumple TODAS las
+      // siguientes validaciones. Si alguna falla, Firebase rechaza
+      // la escritura con permission-denied.
+      allow create: if isValidContribution(request.resource.data);
+    }
+
+    // Resto del proyecto: prohibido por defecto.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+// ---------- Funciones de validacion -----------------------------------
+
+function isValidContribution(d) {
+  return
+    // Estructura general
+    d.keys().hasAll([
+      'schemaVersion', 'wordId', 'wordText', 'contributorUuid',
+      'region', 'fluency', 'appVersion', 'source', 'status',
+      'animation', 'createdAt'
+    ])
+    && d.keys().hasOnly([
+      'schemaVersion', 'wordId', 'wordText', 'contributorUuid',
+      'region', 'fluency', 'appVersion', 'source', 'status',
+      'animation', 'createdAt'
+    ])
+
+    // Tipos
+    && d.schemaVersion is int && d.schemaVersion == 1
+    && d.wordId is string
+    && d.wordText is string
+    && d.contributorUuid is string
+    && d.region is string
+    && d.fluency is string
+    && d.appVersion is string
+    && d.source is string
+    && d.status is string
+    && d.animation is map
+    && d.createdAt == request.time
+
+    // Tamanos / formatos
+    && d.wordId.size() >= 2 && d.wordId.size() <= 64
+    && d.wordText.size() >= 1 && d.wordText.size() <= 80
+    && d.contributorUuid.size() == 36
+    && d.contributorUuid.matches('^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$')
+    && d.appVersion.size() <= 32
+    && d.source in ['web', 'android', 'ios']
+    && d.status == 'pending_review'
+
+    // Region: enum estricto contra lista (XV, I, II, III, IV, V, RM, VI, VII,
+    // XVI, VIII, IX, XIV, X, XI, XII, OTHER, unspecified)
+    && d.region in [
+      'unspecified', 'XV', 'I', 'II', 'III', 'IV', 'V', 'RM', 'VI', 'VII',
+      'XVI', 'VIII', 'IX', 'XIV', 'X', 'XI', 'XII', 'OTHER'
+    ]
+
+    // Fluency: enum estricto
+    && d.fluency in [
+      'deaf_native', 'deaf_learned', 'interpreter', 'family', 'student'
+    ]
+
+    // wordId: debe estar en lista permitida (espejo de prompt_words.js)
+    && d.wordId in [
+      // saludos
+      'hola', 'chao', 'gracias', 'por_favor', 'perdon', 'permiso',
+      'buenos_dias', 'buenas_tardes', 'buenas_noches',
+      // preguntas
+      'como_estas', 'donde', 'cuando', 'quien', 'que', 'por_que', 'cuanto', 'como_se_llama',
+      // emergencias
+      'ayuda', 'urgente', 'doctor', 'hospital', 'ambulancia', 'policia',
+      'bomberos', 'dolor', 'enfermo', 'medicamento',
+      // personas
+      'yo', 'tu', 'el', 'ella', 'nosotros', 'ellos',
+      // familia
+      'mama', 'papa', 'hermano', 'hermana', 'hijo', 'hija', 'abuelo', 'abuela', 'amigo', 'amiga',
+      // lugares
+      'casa', 'calle', 'banco', 'supermercado', 'escuela', 'trabajo', 'bano', 'farmacia',
+      // necesidades
+      'agua', 'comida', 'hambre', 'sed', 'sueno', 'frio', 'calor',
+      // tiempo
+      'hoy', 'manana', 'ayer', 'ahora', 'despues', 'antes',
+      // acciones
+      'comer', 'beber', 'dormir', 'caminar', 'sentarse', 'mirar', 'escuchar', 'hablar',
+      // respuestas
+      'si', 'no', 'tal_vez', 'no_se'
+    ]
+
+    // animation: estructura
+    && d.animation.keys().hasAll(['gestureId', 'fps', 'frames'])
+    && d.animation.keys().hasOnly(['gestureId', 'fps', 'frames'])
+    && d.animation.gestureId is string
+    && d.animation.fps is int
+    && d.animation.fps == 30
+    && d.animation.frames is list
+    && d.animation.frames.size() >= 30   // ~1s minimo
+    && d.animation.frames.size() <= 200  // ~6.6s maximo. Alarma temprana DOS por tamano.
+    ;
+}

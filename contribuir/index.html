@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contribuir señas — Manos que Hablan</title>
+<meta name="description" content="Aportá señas LSCh para construir el diccionario de Manos que Hablan. Captura local, anónima, con tu propia cámara.">
+
+<!-- Content Security Policy: defensa en profundidad contra XSS y carga de scripts no autorizados -->
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://www.google.com https://www.recaptcha.net https://cdn.jsdelivr.net;
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data: blob:;
+  media-src 'self' blob:;
+  connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://firebaseinstallations.googleapis.com https://firebaseappcheck.googleapis.com https://www.google.com https://cdn.jsdelivr.net https://storage.googleapis.com wss://*.firebaseio.com;
+  frame-src https://www.google.com https://www.recaptcha.net;
+  worker-src 'self' blob:;
+  object-src 'none';
+  base-uri 'self';
+">
+
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+
+<style>
+  :root {
+    --bg: #fbfaf7;
+    --bg-soft: #f3f1ea;
+    --bg-card: #ffffff;
+    --ink: #1c1c1a;
+    --ink-soft: #4a4a47;
+    --ink-muted: #8a8a85;
+    --line: #e3e1d8;
+    --accent: #1f3864;
+    --accent-soft: #e6ecf6;
+    --warn: #c2570f;
+    --warn-soft: #fcefdf;
+    --success: #1a7a4f;
+    --success-soft: #e1f3ea;
+    --serif: 'Iowan Old Style', 'Charter', 'Georgia', 'Cambria', 'Times New Roman', serif;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15140f;
+      --bg-soft: #1c1b16;
+      --bg-card: #1c1b16;
+      --ink: #f3f1ea;
+      --ink-soft: #c2c0b6;
+      --ink-muted: #88857d;
+      --line: #2c2a23;
+      --accent: #9bb6e8;
+      --accent-soft: #1a2538;
+      --warn: #f0a048;
+      --warn-soft: #2a2014;
+      --success: #6dc295;
+      --success-soft: #16261d;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.65;
+    color: var(--ink);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+
+  header.site {
+    border-bottom: 1px solid var(--line);
+    background: var(--bg);
+  }
+  header.site .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 0;
+  }
+  header.site .brand {
+    font-family: var(--serif);
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+  header.site nav a {
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+
+  h1, h2, h3 { font-family: var(--serif); font-weight: 500; color: var(--ink); margin: 0; }
+  h1 { font-size: clamp(28px, 4.5vw, 40px); line-height: 1.15; letter-spacing: -0.01em; }
+  h2 { font-size: clamp(22px, 3vw, 28px); line-height: 1.2; }
+  h3 { font-size: 18px; font-family: var(--sans); }
+
+  .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    font-weight: 500;
+  }
+
+  /* ---------- vistas (mostrar/ocultar) ---------- */
+  .view { display: none; padding: 48px 0; }
+  .view.active { display: block; }
+
+  /* ---------- onboarding ---------- */
+  .privacy-card {
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 24px 0;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .privacy-card .icon {
+    flex-shrink: 0;
+    width: 24px; height: 24px;
+    color: var(--accent);
+  }
+  .privacy-card h3 { font-size: 15px; margin-bottom: 4px; color: var(--accent); }
+  .privacy-card p { font-size: 14px; color: var(--ink-soft); margin: 0; line-height: 1.55; }
+
+  .form-section { margin: 28px 0; }
+  .form-section .label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 8px;
+    letter-spacing: 0.02em;
+  }
+
+  select, button, input[type="text"] {
+    font-family: var(--sans);
+    font-size: 15px;
+  }
+
+  select {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: var(--bg-card);
+    color: var(--ink);
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none'%3e%3cpath d='M1 1l5 5 5-5' stroke='%238a8a85' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 40px;
+  }
+  select:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .fluency-options { display: grid; gap: 10px; }
+  .fluency-option {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: border-color .12s, background .12s;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .fluency-option:hover { border-color: var(--ink-muted); }
+  .fluency-option.selected {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .fluency-option .radio {
+    flex-shrink: 0;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--ink-muted);
+    margin-top: 2px;
+    position: relative;
+  }
+  .fluency-option.selected .radio {
+    border-color: var(--accent);
+  }
+  .fluency-option.selected .radio::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .fluency-option .text { flex: 1; }
+  .fluency-option .title-line {
+    font-weight: 500;
+    color: var(--ink);
+    font-size: 14.5px;
+    margin-bottom: 2px;
+  }
+  .fluency-option .desc {
+    color: var(--ink-soft);
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+
+  /* ---------- buttons ---------- */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 22px;
+    font-family: var(--sans);
+    font-size: 15px;
+    font-weight: 500;
+    border-radius: 10px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background .12s, border-color .12s, transform .05s;
+  }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary {
+    background: var(--ink);
+    color: var(--bg);
+    width: 100%;
+    padding: 14px 22px;
+  }
+  .btn-primary:hover:not(:disabled) { background: var(--ink-soft); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--ink);
+    border-color: var(--line);
+  }
+  .btn-ghost:hover { background: var(--bg-soft); border-color: var(--ink-muted); }
+  .btn-danger { background: var(--warn-soft); color: var(--warn); border-color: var(--warn); }
+
+  /* ---------- captura ---------- */
+  .capture-header {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .capture-header .category {
+    display: inline-block;
+    padding: 4px 12px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .capture-header .word-prompt {
+    font-size: 14px;
+    color: var(--ink-soft);
+    margin-bottom: 8px;
+  }
+  .capture-header .word {
+    font-family: var(--serif);
+    font-size: clamp(40px, 7vw, 64px);
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+  }
+
+  .video-container {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3/4;
+    max-width: 480px;
+    margin: 0 auto 20px;
+    background: #111;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .video-container video,
+  .video-container canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .video-container video { transform: scaleX(-1); } /* mirror para selfie */
+  .countdown {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.4);
+    color: white;
+    font-family: var(--serif);
+    font-size: 96px;
+    font-weight: 500;
+  }
+  .countdown.active { display: flex; }
+  .rec-indicator {
+    position: absolute;
+    top: 14px; right: 14px;
+    display: none;
+    align-items: center;
+    gap: 6px;
+    background: #d22;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .rec-indicator.active { display: flex; }
+  .rec-indicator::before {
+    content: '';
+    width: 8px; height: 8px;
+    background: white;
+    border-radius: 50%;
+    animation: blink 1s infinite;
+  }
+  @keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0.3; }
+  }
+
+  .actions-row { display: flex; gap: 10px; }
+  .actions-row .btn { flex: 1; }
+  .actions-row .btn-secondary { flex: 0 0 auto; }
+
+  .hint {
+    text-align: center;
+    color: var(--ink-muted);
+    font-size: 12px;
+    margin-top: 12px;
+  }
+
+  .stats-row {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    margin: 16px 0;
+  }
+  .stat .num {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--ink);
+  }
+  .stat .lbl {
+    font-size: 11px;
+    color: var(--ink-muted);
+    margin-top: -2px;
+  }
+
+  /* ---------- alerts ---------- */
+  .alert {
+    padding: 12px 14px;
+    border-radius: 10px;
+    margin: 12px 0;
+    font-size: 14px;
+    line-height: 1.5;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .alert-warn {
+    background: var(--warn-soft);
+    border: 1px solid var(--warn);
+    color: var(--warn);
+  }
+  .alert-success {
+    background: var(--success-soft);
+    border: 1px solid var(--success);
+    color: var(--success);
+  }
+  .alert-error {
+    background: #fae0e0;
+    border: 1px solid #c43030;
+    color: #c43030;
+  }
+  @media (prefers-color-scheme: dark) {
+    .alert-error { background: #2a1414; color: #ff8585; }
+  }
+  .alert .icon { flex-shrink: 0; width: 18px; height: 18px; margin-top: 1px; }
+
+  /* ---------- success view ---------- */
+  .success-view { text-align: center; padding: 60px 0; }
+  .success-view .check {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    background: var(--success-soft);
+    color: var(--success);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+
+  /* ---------- loading ---------- */
+  .loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 0;
+    gap: 16px;
+  }
+  .spinner {
+    width: 32px; height: 32px;
+    border: 3px solid var(--line);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  footer.site {
+    border-top: 1px solid var(--line);
+    padding: 24px 0 32px;
+    color: var(--ink-muted);
+    font-size: 13px;
+  }
+  footer.site a { color: var(--ink-soft); }
+  footer.site .row {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+  }
+</style>
+</head>
+
+<body>
+
+<header class="site">
+  <div class="wrap row">
+    <a href="../" class="brand" style="text-decoration: none;">Manos que Hablan</a>
+    <nav><a href="../">← Volver al inicio</a></nav>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- VISTA 1: ONBOARDING -->
+  <section class="view active" id="view-onboarding" aria-labelledby="onboarding-title">
+    <p class="eyebrow">Contribuir</p>
+    <h1 id="onboarding-title">Construimos el diccionario contigo.</h1>
+    <p style="color: var(--ink-soft); margin: 14px 0 0;">
+      La aplicación va a mostrarte palabras simples y vos las grabás en LSCh con la cámara
+      del dispositivo. Tres segundos cada una. Las capturas se procesan
+      <strong>localmente en tu navegador</strong> y solo viajan los puntos matemáticos
+      de tu mano al servidor — el video con tu cara nunca sale de este dispositivo.
+    </p>
+
+    <div class="privacy-card">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+      </svg>
+      <div>
+        <h3>Tu privacidad está protegida</h3>
+        <p>No te pedimos email ni teléfono. Tu identidad es un código aleatorio que se genera en este navegador. El video se procesa con MediaPipe acá mismo y solo se envían las coordenadas anonimizadas de tus manos.</p>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <label class="label" for="region">1. Región donde firmás</label>
+      <select id="region">
+        <option value="unspecified">Seleccionar...</option>
+      </select>
+    </div>
+
+    <div class="form-section">
+      <p class="label">2. Cómo aprendiste LSCh</p>
+      <div class="fluency-options" id="fluency-options"></div>
+    </div>
+
+    <button class="btn btn-primary" id="onboarding-submit" disabled>Empezar a contribuir</button>
+    <p class="hint" style="margin-top: 12px;">Podés cambiar estos datos cuando quieras.</p>
+  </section>
+
+  <!-- VISTA 2: CAPTURA -->
+  <section class="view" id="view-capture" aria-labelledby="capture-title">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <p class="eyebrow" id="capture-counter">0 aportes</p>
+      <button class="btn btn-ghost" id="edit-profile-btn" style="padding: 6px 12px; font-size: 13px;">Mi perfil</button>
+    </div>
+    <div class="capture-header">
+      <span class="category" id="word-category">Categoría</span>
+      <p class="word-prompt">Por favor, firmá esta palabra:</p>
+      <h1 class="word" id="word-text" id="capture-title">...</h1>
+    </div>
+
+    <div class="video-container">
+      <video id="video" autoplay playsinline muted></video>
+      <div class="countdown" id="countdown"></div>
+      <div class="rec-indicator" id="rec-indicator">REC</div>
+    </div>
+
+    <div class="actions-row">
+      <button class="btn btn-ghost btn-secondary" id="skip-btn">Saltar</button>
+      <button class="btn btn-primary" id="record-btn">Grabar 3 segundos</button>
+    </div>
+
+    <p class="hint" id="capture-hint">Asegurate de tener buena luz y mantener tus manos en cuadro.</p>
+  </section>
+
+  <!-- VISTA 3: PROCESANDO -->
+  <section class="view" id="view-processing" aria-labelledby="processing-title">
+    <div class="loading">
+      <div class="spinner"></div>
+      <h2 id="processing-title">Procesando tu grabación...</h2>
+      <p style="color: var(--ink-muted); text-align: center;">Extrayendo landmarks. El video no sale de tu navegador.</p>
+    </div>
+  </section>
+
+  <!-- VISTA 4: REVIEW -->
+  <section class="view" id="view-review" aria-labelledby="review-title">
+    <p class="eyebrow">Revisá tu aporte</p>
+    <h2 id="review-title">¿Los puntos siguen tus manos?</h2>
+    <p style="color: var(--ink-soft); margin: 8px 0 16px;">Si está bien, tocá enviar. Si no, regrabá.</p>
+
+    <div id="review-warning"></div>
+
+    <div class="video-container" style="background: #0f1115;">
+      <canvas id="preview-canvas"></canvas>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat">
+        <div class="num" id="stat-frames">0</div>
+        <div class="lbl">frames</div>
+      </div>
+      <div class="stat">
+        <div class="num" id="stat-fps">0</div>
+        <div class="lbl">fps</div>
+      </div>
+      <div class="stat">
+        <div class="num" id="stat-detection">0%</div>
+        <div class="lbl">manos detectadas</div>
+      </div>
+    </div>
+
+    <div class="actions-row" style="margin-top: 16px;">
+      <button class="btn btn-ghost" id="retake-btn">Regrabar</button>
+      <button class="btn btn-primary" id="submit-btn">Enviar aporte</button>
+    </div>
+
+    <div id="submit-error"></div>
+  </section>
+
+  <!-- VISTA 5: ÉXITO -->
+  <section class="view" id="view-success" aria-labelledby="success-title">
+    <div class="success-view">
+      <div class="check">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+      <h2 id="success-title">¡Aporte enviado!</h2>
+      <p style="color: var(--ink-soft); margin: 12px 0 24px; max-width: 420px; margin-left: auto; margin-right: auto;">
+        Tu aporte va a ser revisado por validadores expertos antes de pasar al estándar.
+        Gracias por construir esto con nosotros.
+      </p>
+      <button class="btn btn-primary" id="continue-btn" style="max-width: 320px; margin: 0 auto; display: inline-flex;">Aportar otra palabra</button>
+    </div>
+  </section>
+
+  <!-- VISTA 6: ERROR INICIAL (sin cámara, sin firebase, sin permiso) -->
+  <section class="view" id="view-error" aria-labelledby="error-title">
+    <div class="loading">
+      <h2 id="error-title">No podemos cargar el contribuidor</h2>
+      <p id="error-message" style="color: var(--ink-muted); text-align: center; max-width: 480px;"></p>
+      <button class="btn btn-ghost" onclick="location.reload()">Reintentar</button>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site">
+  <div class="wrap row">
+    <span>© 2026 Manos que Hablan · proyecto sin fines de lucro</span>
+    <span><a href="../">Volver al inicio</a></span>
+  </div>
+</footer>
+
+<!-- Carga del script principal como modulo (necesario para imports ESM) -->
+<script type="module" src="contribute.js"></script>
+
+</body>
+</html>
