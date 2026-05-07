@@ -63,7 +63,7 @@ function isValidContribution(d) {
     ])
 
     // Tipos
-    && d.schemaVersion is int && d.schemaVersion == 1
+    && d.schemaVersion is int && d.schemaVersion == 2
     && d.wordId is string
     && d.wordText is string
     && d.contributorUuid is string

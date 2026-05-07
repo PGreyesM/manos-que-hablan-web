@@ -407,6 +407,8 @@ async function startRecording() {
 
     try {
       const result = handLandmarker.detectForVideo(videoEl, now);
+      // Estructura SIN nested arrays (Firestore no las soporta).
+      // frame = { hands: [ {handedness, landmarks: [{x,y,z}, ...] } ] }
       const handsInFrame = (result.landmarks || []).map((handLandmarks, i) => {
         const handedness =
           result.handedness?.[i]?.[0]?.categoryName ||
@@ -414,17 +416,17 @@ async function startRecording() {
           'Unknown';
         return {
           handedness,
-          landmarks: handLandmarks.map(lm => [
-            roundFloat(lm.x),
-            roundFloat(lm.y),
-            roundFloat(lm.z),
-          ]),
+          landmarks: handLandmarks.map(lm => ({
+            x: roundFloat(lm.x),
+            y: roundFloat(lm.y),
+            z: roundFloat(lm.z),
+          })),
         };
       });
-      frames.push(handsInFrame);
+      frames.push({ hands: handsInFrame });
     } catch (e) {
       console.warn('[capture] frame skip:', e);
-      frames.push([]); // mantener cadencia
+      frames.push({ hands: [] }); // mantener cadencia
     }
     requestAnimationFrame(loop);
   }
@@ -471,7 +473,7 @@ function renderReview() {
   const cap = state.pendingCapture;
   if (!cap) return;
   const total = cap.animation.frames.length;
-  const withHands = cap.animation.frames.filter(f => f.length > 0).length;
+  const withHands = cap.animation.frames.filter(f => f.hands && f.hands.length > 0).length;
   const detectionPct = total === 0 ? 0 : (withHands / total) * 100;
 
   $('stat-frames').textContent = total;
@@ -516,12 +518,12 @@ function startPreviewAnimation() {
   // Bbox normalization
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   for (const frame of frames) {
-    for (const hand of frame) {
-      for (const [x, y] of hand.landmarks) {
-        if (x < minX) minX = x;
-        if (y < minY) minY = y;
-        if (x > maxX) maxX = x;
-        if (y > maxY) maxY = y;
+    for (const hand of (frame.hands || [])) {
+      for (const lm of hand.landmarks) {
+        if (lm.x < minX) minX = lm.x;
+        if (lm.y < minY) minY = lm.y;
+        if (lm.x > maxX) maxX = lm.x;
+        if (lm.y > maxY) maxY = lm.y;
       }
     }
   }
@@ -554,7 +556,7 @@ function startPreviewAnimation() {
       [0,17],
     ];
 
-    for (const hand of frame) {
+    for (const hand of (frame.hands || [])) {
       const isRight = hand.handedness === 'Right';
       const color = isRight ? '#9bb6e8' : '#e0a070';
       ctx.strokeStyle = color;
@@ -562,9 +564,9 @@ function startPreviewAnimation() {
       ctx.lineWidth = side * 0.012;
       ctx.lineCap = 'round';
 
-      const pts = hand.landmarks.map(([x, y]) => [
-        (x * scale + offX) * W,
-        (y * scale + offY) * H,
+      const pts = hand.landmarks.map(lm => [
+        (lm.x * scale + offX) * W,
+        (lm.y * scale + offY) * H,
       ]);
 
       for (const [a, b] of connections) {
@@ -627,23 +629,31 @@ function validateContribution(cap) {
   if (total < 30 || total > 200) {
     return `Cantidad de frames fuera de rango: ${total}.`;
   }
-  const withHands = cap.animation.frames.filter(f => f.length > 0).length;
+  const withHands = cap.animation.frames.filter(f => f.hands && f.hands.length > 0).length;
   if (withHands / total < MIN_DETECTION_PERCENT_TO_SUBMIT) {
     return `Detectamos manos en muy pocos frames. Por favor regrabá.`;
   }
   if (cap.animation.fps !== TARGET_FPS) {
     return `FPS inválido: ${cap.animation.fps}.`;
   }
-  // Validar estructura: cada frame es array, cada hand tiene 21 landmarks de 3 numeros
+  // Validar estructura: cada frame es {hands:[...]}, cada hand tiene
+  // 21 landmarks de tipo {x,y,z}. Sin nested arrays (Firestore lo prohibe).
   for (const frame of cap.animation.frames) {
-    if (!Array.isArray(frame)) return 'Frame invalido.';
-    for (const hand of frame) {
+    if (!frame || typeof frame !== 'object' || !Array.isArray(frame.hands)) {
+      return 'Frame invalido.';
+    }
+    for (const hand of frame.hands) {
       if (!hand.handedness || !Array.isArray(hand.landmarks)) return 'Hand invalido.';
       if (hand.landmarks.length !== 21) {
         return `Esperabamos 21 landmarks por mano, recibimos ${hand.landmarks.length}.`;
       }
       for (const lm of hand.landmarks) {
-        if (!Array.isArray(lm) || lm.length !== 3) return 'Landmark invalido.';
+        if (typeof lm !== 'object' ||
+            typeof lm.x !== 'number' ||
+            typeof lm.y !== 'number' ||
+            typeof lm.z !== 'number') {
+          return 'Landmark invalido.';
+        }
       }
     }
   }
@@ -665,7 +675,7 @@ async function submitContribution() {
   $('submit-btn').textContent = 'Enviando...';
 
   const docPayload = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     wordId: cap.wordId,
     wordText: cap.wordText,
     contributorUuid: state.profile.uuid,
